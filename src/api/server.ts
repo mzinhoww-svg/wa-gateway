@@ -6,12 +6,16 @@ import type { Db } from '../db/client.js';
 import type { InstanceManager } from '../instances/manager.js';
 import type { SendQueue } from '../queue/sendQueue.js';
 import { createCode } from '../optin/codes.js';
+import type { PoolService } from '../pools/service.js';
+import { type Pareamentos, rotasPools } from '../pools/routes.js';
 
 export interface ServerDeps {
   config: Config;
   db: Db;
   manager: Pick<InstanceManager, 'create' | 'list' | 'status' | 'phone' | 'remove'>;
   queue: Pick<SendQueue, 'enqueue' | 'stats'>;
+  /** Pools com failover (opcional: sem isto, só a API original). */
+  pools?: { service: PoolService; pareamentos: Pareamentos };
 }
 
 const idSchema = z.string().regex(/^[a-z0-9-]{2,32}$/);
@@ -45,7 +49,8 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     // decide pela rota já casada (o roteador decodifica %xx; a URL crua não serve)
     if (!(req.routeOptions?.url ?? '').startsWith('/v1/')) return;
     const key = req.headers['x-api-key'];
-    if (typeof key !== 'string' || !safeEqual(key, config.apiKey)) {
+    const chaves = config.apiKeys?.length ? config.apiKeys : [config.apiKey];
+    if (typeof key !== 'string' || !chaves.some((k) => safeEqual(key, k))) {
       return reply.code(401).send({ error: 'UNAUTHORIZED' });
     }
   });
@@ -53,7 +58,10 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof z.ZodError) return reply.code(400).send({ error: 'INVALID_BODY', issues: err.issues });
     const status = (err as { statusCode?: number }).statusCode;
-    if (status && status >= 400 && status < 500) return reply.code(status).send({ error: 'BAD_REQUEST' });
+    if (status && status >= 400 && status < 500) {
+      const msg = (err as Error).message;
+      return reply.code(status).send({ error: /^[A-Z_]+$/.test(msg) ? msg : 'BAD_REQUEST' });
+    }
     console.error('[api]', err);
     return reply.code(500).send({ error: 'INTERNAL' });
   });
@@ -101,6 +109,8 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     const id = idSchema.parse((req.params as { instanceId: string }).instanceId);
     return queue.stats(id);
   });
+
+  if (deps.pools) rotasPools(app, deps.pools.service, manager, deps.pools.pareamentos);
 
   return app;
 }

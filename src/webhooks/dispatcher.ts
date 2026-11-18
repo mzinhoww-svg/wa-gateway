@@ -1,5 +1,8 @@
 import { createHmac } from 'node:crypto';
-import type { WebhookEvent } from '../optin/service.js';
+import type { WebhookEvent as EventoOptin } from '../optin/service.js';
+import type { PoolWebhookEvent } from '../pools/service.js';
+
+export type WebhookEvent = EventoOptin | PoolWebhookEvent;
 
 export function sign(body: string, secret: string): string {
   return 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');

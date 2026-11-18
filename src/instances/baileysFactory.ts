@@ -51,7 +51,7 @@ export const baileysFactory: SocketFactory = async (o) => {
     if (u.connection === 'close') {
       const code = (u.lastDisconnect?.error as any)?.output?.statusCode;
       const fatal = code === DisconnectReason.connectionReplaced || code === DisconnectReason.forbidden || code === DisconnectReason.badSession;
-      o.onClose({ loggedOut: code === DisconnectReason.loggedOut, fatal });
+      o.onClose({ loggedOut: code === DisconnectReason.loggedOut, fatal, code });
     }
   });
   sock.ev.on('messages.upsert', ({ messages, type }) => {
@@ -65,5 +65,15 @@ export const baileysFactory: SocketFactory = async (o) => {
     sendText: async (jid, text) => void (await sock.sendMessage(jid, { text })),
     end: () => sock.end(undefined),
     selfPhone: () => digitsOf(sock.user?.id),
+    sendImage: async (jid, imageUrl, caption) => void (await sock.sendMessage(jid, { image: { url: imageUrl }, caption })),
+    isGroupAdmin: async (groupJid) => {
+      const meta = await sock.groupMetadata(groupJid);
+      const eu = new Set([digitsOf(sock.user?.id), digitsOf((sock.user as { lid?: string } | undefined)?.lid)].filter(Boolean));
+      return meta.participants.some((p) => {
+        const ids = [p.id, (p as { phoneNumber?: string }).phoneNumber, (p as { lid?: string }).lid].map(digitsOf);
+        return Boolean(p.admin) && ids.some((d) => d && eu.has(d));
+      });
+    },
+    groupInviteLink: async (groupJid) => `https://chat.whatsapp.com/${await sock.groupInviteCode(groupJid)}`,
   };
 };
