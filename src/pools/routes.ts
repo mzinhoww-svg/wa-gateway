@@ -82,6 +82,9 @@ export function rotasPools(
 
   app.get('/v1/pools/:pool/grupos', async (req) => ({ grupos: await pools.listarGrupos(pool(req)) }));
 
+  /** Grupos do WhatsApp em que o número ativo está, para cadastrar sem digitar o JID. */
+  app.get('/v1/pools/:pool/grupos-whatsapp', async (req) => ({ grupos: await pools.gruposDoWhatsapp(pool(req)) }));
+
   app.get('/v1/pools/:pool/grupos/:jid/convite', async (req) => {
     const jid = groupJid.parse((req.params as { jid: string }).jid);
     return { convite: await pools.convite(pool(req), jid) };

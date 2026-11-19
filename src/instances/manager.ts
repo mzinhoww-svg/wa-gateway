@@ -91,6 +91,11 @@ export class InstanceManager {
     return s.isGroupAdmin ? s.isGroupAdmin(groupJid) : false;
   }
 
+  async listGroups(id: string) {
+    const s = this.openSocket(id);
+    return s.listGroups ? s.listGroups() : [];
+  }
+
   async groupInviteLink(id: string, groupJid: string): Promise<string> {
     const s = this.openSocket(id);
     if (!s.groupInviteLink) throw new Error('INVITE_UNSUPPORTED');

@@ -74,6 +74,19 @@ export const baileysFactory: SocketFactory = async (o) => {
         return Boolean(p.admin) && ids.some((d) => d && eu.has(d));
       });
     },
+    listGroups: async () => {
+      const todos = await sock.groupFetchAllParticipating();
+      const eu = new Set([digitsOf(sock.user?.id), digitsOf((sock.user as { lid?: string } | undefined)?.lid)].filter(Boolean));
+      return Object.values(todos).map((g) => ({
+        jid: g.id,
+        nome: g.subject ?? "",
+        participantes: g.participants?.length ?? 0,
+        souAdmin: (g.participants ?? []).some((p) => {
+          const ids = [p.id, (p as { phoneNumber?: string }).phoneNumber, (p as { lid?: string }).lid].map(digitsOf);
+          return Boolean(p.admin) && ids.some((d) => d && eu.has(d));
+        }),
+      }));
+    },
     groupInviteLink: async (groupJid) => `https://chat.whatsapp.com/${await sock.groupInviteCode(groupJid)}`,
   };
 };

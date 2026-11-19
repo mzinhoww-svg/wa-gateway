@@ -23,6 +23,7 @@ function simulador() {
       selfPhone: () => telefones[o.instanceId] ?? null,
       isGroupAdmin: async () => admins.has(o.instanceId),
       groupInviteLink: async () => 'https://chat.whatsapp.com/CONVITE123',
+      listGroups: async () => [{ jid: GRUPO, nome: 'Teste Achadinhos', participantes: 3, souAdmin: admins.has(o.instanceId) }],
     };
   };
   return {
@@ -128,6 +129,11 @@ describe('pools: papéis e failover', () => {
     const p = (await pools.listarNumeros('achadinhos')).find((x) => x.instanceId === 'pessoal');
     expect(p).toMatchObject({ papel: 'bloqueado', conexao: 'closed' });
     expect(eventos.some((e) => e.type === 'pool.numero_pessoal_bloqueado')).toBe(true);
+  });
+
+  it('lista os grupos do WhatsApp do número ativo', async () => {
+    const { pools } = await montar();
+    expect(await pools.gruposDoWhatsapp('achadinhos')).toEqual([{ jid: GRUPO, nome: 'Teste Achadinhos', participantes: 3, souAdmin: true }]);
   });
 
   it('troca manual pelo painel', async () => {

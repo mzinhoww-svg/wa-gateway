@@ -23,6 +23,8 @@ export interface WaSocket {
   isGroupAdmin?(groupJid: string): Promise<boolean>;
   /** Link de convite do grupo (o número precisa ser admin). */
   groupInviteLink?(groupJid: string): Promise<string>;
+  /** Grupos em que este número está (para o painel escolher sem digitar o JID). */
+  listGroups?(): Promise<{ jid: string; nome: string; participantes: number; souAdmin: boolean }[]>;
 }
 
 export interface SocketOptions {

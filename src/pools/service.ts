@@ -31,7 +31,7 @@ export interface PoolOptions {
   db: Db;
   manager: Pick<
     InstanceManager,
-    'status' | 'phone' | 'sendTo' | 'isGroupAdmin' | 'groupInviteLink' | 'disconnect' | 'create'
+    'status' | 'phone' | 'sendTo' | 'isGroupAdmin' | 'groupInviteLink' | 'disconnect' | 'create' | 'listGroups'
   >;
   emit(e: PoolWebhookEvent): void;
   heartbeatMs?: number;
@@ -202,6 +202,13 @@ export class PoolService {
       espacoMaxS: g.espaco_max_s,
       proximoEnvio: g.proximo_envio ? new Date(g.proximo_envio).toISOString() : null,
     }));
+  }
+
+  /** Grupos do WhatsApp em que o número ativo está. */
+  async gruposDoWhatsapp(poolId: string) {
+    const ativo = await this.ativo(poolId);
+    if (!ativo) throw Object.assign(new Error('NO_ACTIVE_NUMBER'), { statusCode: 409 });
+    return this.o.manager.listGroups(ativo);
   }
 
   async convite(poolId: string, jid: string): Promise<string> {
